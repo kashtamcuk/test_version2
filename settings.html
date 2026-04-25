@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mars OS - Settings</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --accent-color: #ff5722;
+            --bg-color-1: #1a0800;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; cursor: crosshair; }
+
+        body {
+            background: radial-gradient(circle at center, var(--bg-color-1) 0%, #000 100%);
+            color: white;
+            font-family: 'Orbitron', sans-serif;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            transition: background 0.8s ease;
+        }
+
+        .scanlines {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.1) 0px, rgba(0, 0, 0, 0.1) 1px, transparent 1px, transparent 2px);
+            pointer-events: none; z-index: 100;
+        }
+
+        .settings-window {
+            width: 600px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid var(--accent-color);
+            padding: 40px;
+            position: relative;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 1), inset 0 0 15px var(--accent-color);
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            color: var(--accent-color);
+            text-align: center;
+            letter-spacing: 10px;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+        }
+
+        .setting-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .label {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.1rem;
+            letter-spacing: 2px;
+            color: #ccc;
+        }
+
+        select, input[type="range"] {
+            background: #000;
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            padding: 8px;
+            font-family: 'Orbitron', sans-serif;
+            outline: none;
+        }
+
+        .button-zone {
+            margin-top: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        button {
+            padding: 15px;
+            background: transparent;
+            border: 1px solid var(--accent-color);
+            color: white;
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: 0.3s;
+            text-transform: uppercase;
+        }
+
+        button:hover {
+            background: var(--accent-color);
+            color: black;
+            box-shadow: 0 0 20px var(--accent-color);
+        }
+
+        .btn-back {
+            border-color: rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.8rem;
+        }
+
+        #log {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.8rem;
+            color: var(--accent-color);
+            text-align: center;
+            margin-bottom: 10px;
+            min-height: 20px;
+        }
+
+        .c { position: absolute; width: 15px; height: 15px; border: 2px solid var(--accent-color); }
+        .tl { top: -2px; left: -2px; border-right: none; border-bottom: none; }
+        .tr { top: -2px; right: -2px; border-left: none; border-bottom: none; }
+        .bl { bottom: -2px; left: -2px; border-right: none; border-top: none; }
+        .br { bottom: -2px; right: -2px; border-left: none; border-top: none; }
+    </style>
+</head>
+<body>
+
+    <div class="scanlines" id="fx"></div>
+
+    <div class="settings-window">
+        <div class="c tl"></div><div class="c tr"></div>
+        <div class="c bl"></div><div class="c br"></div>
+
+        <h1>Конфігурація</h1>
+
+        <div class="setting-group">
+            <span class="label">ЕФЕКТИ ВІДЕОСИГНАЛУ</span>
+            <input type="checkbox" id="checkFX" onchange="toggleFX()">
+        </div>
+
+        <div class="setting-group">
+            <span class="label">КОЛІРНА СХЕМА</span>
+            <select id="colorTheme" onchange="updateThemePreview(this.value)">
+                <option value="#ff5722">ARES ORANGE</option>
+                <option value="#00d4ff">ICE BLUE</option>
+                <option value="#4caf50">OXYGEN GREEN</option>
+                <option value="#e91e63">PULSE RED</option>
+            </select>
+        </div>
+
+        <div class="setting-group">
+            <span class="label">ГУЧНІСТЬ СИСТЕМ (dB)</span>
+            <input type="range" id="volume" min="0" max="100" value="70" oninput="adjustVolume(this.value)">
+        </div>
+
+        <div class="setting-group">
+            <span class="label">МОВА ТЕРМІНАЛУ</span>
+            <select id="lang">
+                <option value="UA">UKRAINIAN (UA)</option>
+                <option value="EN">ENGLISH (EN)</option>
+            </select>
+        </div>
+
+        <div id="log">Система готова до налаштування</div>
+
+        <div class="button-zone">
+            <button onclick="saveAndExit()">ЗБЕРЕГТИ ЗМІНИ</button>
+            <button class="btn-back" onclick="window.location.href='index.html'">ВЕРНУТИСЬ В МЕНЮ</button>
+        </div>
+    </div>
+
+    
+
+    <script>
+        // --- АУДІО СИСТЕМА ---
+        const bgMusic = new Audio('fon_menu.mp3');
+        bgMusic.loop = true;
+
+        function playClickSound() {
+            const clickSnd = new Audio('click-effect.mp3');
+            clickSnd.volume = (localStorage.getItem('marsVol') || 70) / 100;
+            clickSnd.play();
+        }
+
+        function startAmbient() {
+            const savedVol = localStorage.getItem('marsVol') || 70;
+            bgMusic.volume = (savedVol / 100) * 0.5;
+            
+            const lastTime = localStorage.getItem('musicTime');
+            if (lastTime) bgMusic.currentTime = parseFloat(lastTime);
+            
+            bgMusic.play().catch(() => {});
+        }
+
+        function adjustVolume(val) {
+            bgMusic.volume = (val / 100) * 0.5;
+            document.getElementById('log').innerText = `Рівень сигналу: ${val} dB`;
+        }
+
+        // Збереження часу треку кожну секунду
+        setInterval(() => {
+            if (!bgMusic.paused) {
+                localStorage.setItem('musicTime', bgMusic.currentTime);
+            }
+        }, 1000);
+
+        // --- ЛОГІКА НАЛАШТУВАНЬ ---
+        const bgColors = {
+            "#ff5722": "#1a0800",
+            "#00d4ff": "#000a1a",
+            "#4caf50": "#051a05",
+            "#e91e63": "#1a0008"
+        };
+
+        window.onload = function() {
+            const theme = localStorage.getItem('marsTheme') || '#ff5722';
+            const fx = localStorage.getItem('marsFX') !== 'false';
+            const vol = localStorage.getItem('marsVol') || '70';
+            const lang = localStorage.getItem('marsLang') || 'UA';
+
+            document.getElementById('colorTheme').value = theme;
+            document.getElementById('checkFX').checked = fx;
+            document.getElementById('volume').value = vol;
+            document.getElementById('lang').value = lang;
+
+            updateThemePreview(theme);
+            toggleFX();
+            
+            // Додаємо звук кнопкам
+            document.querySelectorAll('button').forEach(btn => {
+                btn.addEventListener('click', playClickSound);
+            });
+        };
+
+        function updateThemePreview(color) {
+            document.documentElement.style.setProperty('--accent-color', color);
+            const darkBg = bgColors[color] || "#000";
+            document.documentElement.style.setProperty('--bg-color-1', darkBg);
+        }
+
+        function toggleFX() {
+            const isChecked = document.getElementById('checkFX').checked;
+            document.getElementById('fx').style.display = isChecked ? 'block' : 'none';
+        }
+
+        function saveAndExit() {
+            localStorage.setItem('marsTheme', document.getElementById('colorTheme').value);
+            localStorage.setItem('marsFX', document.getElementById('checkFX').checked);
+            localStorage.setItem('marsVol', document.getElementById('volume').value);
+            localStorage.setItem('marsLang', document.getElementById('lang').value);
+
+            document.getElementById('log').innerText = "КОНФІГУРАЦІЮ ОНОВЛЕНО...";
+            setTimeout(() => { window.location.href = 'index.html'; }, 800);
+        }
+
+        // Запуск музики при першому кліку
+        document.addEventListener('click', () => {
+            if (bgMusic.paused) startAmbient();
+        }, { once: true });
+    </script>
+</body>
+</html>
